@@ -1,5 +1,5 @@
 #!/bin/bash
-# DonnaMamma Radiacode (RADMON) Installer
+# Radiacode (RADMON) Installer
 
 # Sprawdzenie uprawnień 
 if [ "$EUID" -ne 0 ]; then 
