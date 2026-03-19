@@ -70,6 +70,7 @@ def main():
         
         cps_buffer, dose_buffer = [], []
         last_valid_err = 100.0
+        last_temp = 0.0
         start_time = time.time()
         header_printed = False
 
@@ -85,14 +86,16 @@ def main():
 
             records = rc.data_buf()
             for record in records:
-                if not args.runonce and hasattr(record, 'charge_level'):
-                    # Jeśli tabela jeszcze nie ruszyła, drukuj systemowe normalnie
-                    # Jeśli ruszyła, przerwij ją nową linią
-                    prefix = "\n" if header_printed else ""
-                    sys.stdout.write(f"{prefix}[SYS] Bat: {record.charge_level}% | Temp: {record.temperature:.1f}°C\n")
-                    if header_printed:
-                        header_printed = False # Wymuś re-print nagłówka przy następnej linii danych
+                # Pobieranie danych systemowych (temperatura)
+                if hasattr(record, 'charge_level'):
+                    last_temp = record.temperature
+                    if not args.runonce:
+                        prefix = "\n" if header_printed else ""
+                        sys.stdout.write(f"{prefix}[SYS] Bat: {record.charge_level}% | Temp: {last_temp:.1f}°C\n")
+                        if header_printed:
+                            header_printed = False 
 
+                # Pobieranie danych radiacyjnych
                 if hasattr(record, 'count_rate'):
                     cps_buffer.append(record.count_rate)
                     dose_buffer.append(getattr(record, 'dose_rate', 0.0) * 10000.0)
@@ -108,22 +111,23 @@ def main():
                     avg_ur = avg_usv * 100.0
                     ts = time.strftime('%H:%M:%S')
                     
-                    # RYSOWANIE NAGŁÓWKA - TYLKO TU!
-                    if not args.runonce and not header_printed:
-                        h_text = f"{'Time':<10} | {'CPS (CPM)':>16} | {f'µSv/h ({args.interval}s)':>12} | {f'µR/h ({args.interval}s)':>12} | {'Err +/-':>6}"
-                        h_line = "-" * len(h_text)
-                        sys.stdout.write(f"{h_line}\n{h_text}\n{h_line}\n")
-                        header_printed = True
-
-                    cps_cpm_str = f"{avg_cps:>5.1f} ({int(avg_cpm):>4})"
-                    output = f"{ts:<10} | {cps_cpm_str:>16} | {avg_usv:>12.4f} | {avg_ur:>12.2f} | {last_valid_err:>5.1f}%"
-                    
                     if args.runonce:
-                        print(output)
+                        # Tryb runonce:
+                        print(f"t={ts}  HT={avg_usv:.4f}µSv/h  HT={avg_ur:.2f}µR/h  CPS={avg_cps:.1f}  CPM={int(avg_cpm)}  Err={last_valid_err:.1f}% Temp={last_temp:.1f}°C")
                         return 
                     else:
+                        # Tryb Live: tabela 
+                        if not header_printed:
+                            h_text = f"{'Time':<10} | {'CPS (CPM)':>12} | {f'µSv/h ({args.interval}s)':>12} | {f'µR/h ({args.interval}s)':>12} | {'Err +/-':>6}"
+                            h_line = "-" * len(h_text)
+                            sys.stdout.write(f"{h_line}\n{h_text}\n{h_line}\n")
+                            header_printed = True
+
+                        cps_cpm_str = f"{avg_cps:>5.1f} ({int(avg_cpm):>4})"
+                        output = f"{ts:<10} | {cps_cpm_str:>12} | {avg_usv:>12.4f} | {avg_ur:>12.2f} | {last_valid_err:>5.1f}%"
                         sys.stdout.write(f"\r{output}")
                         sys.stdout.flush()
+                        
                         cps_buffer, dose_buffer = [], []
                         start_time = current_time
 
