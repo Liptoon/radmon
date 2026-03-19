@@ -51,7 +51,7 @@ def interactive_mac_input():
 def main():
     parser = argparse.ArgumentParser(description='Radmon: Radiacode 102 Monitor')
     parser.add_argument('-m', '--mac', type=str, help='MAC Adress of the Radiacode device')
-    parser.add_argument('-i', '--interval', type=int, default=3, help='Averaging interwal (s)')
+    parser.add_argument('-i', '--interval', type=int, default=3, help='Averaging interval (s)')
     parser.add_argument('-r', '--runonce', action='store_true', help='Single reading mode (prints one line and exits)')
     args = parser.parse_args()
 
