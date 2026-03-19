@@ -23,7 +23,7 @@ def is_q_pressed():
     return False
 
 def interactive_mac_input():
-    print("Podaj adres MAC urządzenia (auto-format):")
+    print("Enter Radiacode MAC:")
     mac = ""
     allowed_chars = "0123456789ABCDEF"
     while len(mac) < 17:
@@ -32,7 +32,7 @@ def interactive_mac_input():
         try:
             ch = get_char().upper()
             if ch == '\x03' or ch == 'Q':
-                print("\nAnulowano.")
+                print("\nAborted.")
                 sys.exit(0)
             if ch == '\x7f' or ch == '\x08':
                 if len(mac) > 0:
@@ -43,16 +43,16 @@ def interactive_mac_input():
                 mac += ch
                 if len(mac) in [2, 5, 8, 11, 14]: mac += ":"
         except KeyboardInterrupt:
-            print("\nAnulowano.")
+            print("\nAborted.")
             sys.exit(0)
-    print(f"\rMAC: {mac} [Zatwierdzono]")
+    print(f"\rMAC: {mac} [OK]")
     return mac
 
 def main():
-    parser = argparse.ArgumentParser(description='DonnaMamma: Radiacode 102 Monitor')
-    parser.add_argument('-m', '--mac', type=str, help='Adres MAC urządzenia')
-    parser.add_argument('-i', '--interval', type=int, default=3, help='Interwał uśredniania (s)')
-    parser.add_argument('-r', '--runonce', action='store_true', help='Tryb pojedynczego pomiaru')
+    parser = argparse.ArgumentParser(description='Radmon: Radiacode 102 Monitor')
+    parser.add_argument('-m', '--mac', type=str, help='MAC Adress of the Radiacode device')
+    parser.add_argument('-i', '--interval', type=int, default=3, help='Averaging interwal (s)')
+    parser.add_argument('-r', '--runonce', action='store_true', help='Single reading mode (prints one line and exits)')
     args = parser.parse_args()
 
     fd = sys.stdin.fileno()
@@ -64,7 +64,7 @@ def main():
             bluetooth_mac = interactive_mac_input()
 
         if not args.runonce:
-            print(f"[*] Próba połączenia z {bluetooth_mac}...")
+            print(f"[*] Connecting to {bluetooth_mac}...")
         
         rc = RadiaCode(bluetooth_mac=bluetooth_mac)
         
@@ -74,8 +74,8 @@ def main():
         header_printed = False
 
         if not args.runonce:
-            print(f"[OK] Połączono: {rc.serial_number()}")
-            print(f"[!] Wyjście: 'q' lub Ctrl+C")
+            print(f"[OK] Connected to: {rc.serial_number()}")
+            print(f"[!] Exit: 'q' or Ctrl+C")
             tty.setcbreak(sys.stdin.fileno())
 
         while True:
@@ -110,7 +110,7 @@ def main():
                     
                     # RYSOWANIE NAGŁÓWKA - TYLKO TU!
                     if not args.runonce and not header_printed:
-                        h_text = f"{'Czas':<10} | {'Śr. CPS (CPM)':>16} | {f'uSv/h ({args.interval}s)':>12} | {f'uR/h ({args.interval}s)':>12} | {'Błąd':>6}"
+                        h_text = f"{'Time':<10} | {'CPS (CPM)':>16} | {f'µSv/h ({args.interval}s)':>12} | {f'µR/h ({args.interval}s)':>12} | {'Err +/-':>6}"
                         h_line = "-" * len(h_text)
                         sys.stdout.write(f"{h_line}\n{h_text}\n{h_line}\n")
                         header_printed = True
@@ -132,7 +132,7 @@ def main():
     except KeyboardInterrupt:
         if not args.runonce:
             sys.stdout.write("\n")
-            print("[INFO] Przerwano (Ctrl+C).")
+            print("[INFO] Aborted (Ctrl+C).")
     except Exception as e:
         print(f"\n[ERR] {e}")
     finally:
