@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/opt/radmon/venv/bin/python3
 import time
 import sys
 import argparse
