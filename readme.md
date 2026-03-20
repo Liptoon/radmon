@@ -1,12 +1,13 @@
 **Radmon: Radiacode 102 CLI Monitor**
 
-usage: ``` radmon.py [-h] [-m MAC] [-i INTERVAL] [-r] ```
+usage: ``` radmon.py [-h] [-m MAC] [-i INTERVAL] [-r [X]] ```
 
 **Options:**  
-  -h, --help            show this help message and exit  
-  -m MAC, --mac MAC     device's BLE MAC adress  
-  -i INTERVAL, --interval INTERVAL averaging interval  
-  -r, --runonce         show single measurement and exit  
+  -h, --help                        show this help message and exit  
+  -m MAC, --mac MAC                 device's BLE MAC adress  
+  -i INTERVAL, --interval INTERVAL  averaging interval  
+   -r [X], --runonce [X]            single/multi reading mode (prints X lines and exits)  
+
   
 **Installation:**  
   Clone repo:  
