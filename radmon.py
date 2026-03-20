@@ -50,9 +50,10 @@ def interactive_mac_input():
 
 def main():
     parser = argparse.ArgumentParser(description='Radmon: Radiacode 102 Monitor')
-    parser.add_argument('-m', '--mac', type=str, help='MAC Adress of the Radiacode device')
+    parser.add_argument('-m', '--mac', type=str, metavar='MAC', help='MAC Adress of the Radiacode device')
     parser.add_argument('-i', '--interval', type=int, default=3, help='Averaging interval (s)')
-    parser.add_argument('-r', '--runonce', action='store_true', help='Single reading mode (prints one line and exits)')
+    # -r przyjmuje opcjonalną liczbę (nargs='?'), domyślnie 1, jeśli flaga jest obecna
+    parser.add_argument('-r', '--runonce', nargs='?', type=int, const=1, metavar='X', help='Single/multi reading mode (prints X lines and exits)')
     args = parser.parse_args()
 
     fd = sys.stdin.fileno()
@@ -63,7 +64,7 @@ def main():
         if not bluetooth_mac:
             bluetooth_mac = interactive_mac_input()
 
-        if not args.runonce:
+        if args.runonce is None:
             print(f"[*] Connecting to {bluetooth_mac}...")
         
         rc = RadiaCode(bluetooth_mac=bluetooth_mac)
@@ -73,14 +74,15 @@ def main():
         last_temp = 0.0
         start_time = time.time()
         header_printed = False
+        lines_count = 0
 
-        if not args.runonce:
+        if args.runonce is None:
             print(f"[OK] Connected to: {rc.serial_number()}")
             print(f"[!] Exit: 'q' or Ctrl+C")
             tty.setcbreak(sys.stdin.fileno())
 
         while True:
-            if not args.runonce and is_q_pressed():
+            if args.runonce is None and is_q_pressed():
                 sys.stdout.write("\n")
                 break
 
@@ -89,7 +91,7 @@ def main():
                 # Pobieranie danych systemowych (temperatura)
                 if hasattr(record, 'charge_level'):
                     last_temp = record.temperature
-                    if not args.runonce:
+                    if args.runonce is None:
                         prefix = "\n" if header_printed else ""
                         sys.stdout.write(f"{prefix}[SYS] Bat: {record.charge_level}% | Temp: {last_temp:.1f}°C\n")
                         if header_printed:
@@ -111,10 +113,15 @@ def main():
                     avg_ur = avg_usv * 100.0
                     ts = time.strftime('%H:%M:%S')
                     
-                    if args.runonce:
+                    if args.runonce is not None:
                         # Tryb runonce:
-                        print(f"t={ts}  HT={avg_usv:.4f}µSv/h  HT={avg_ur:.2f}µR/h  CPS={avg_cps:.1f}  CPM={int(avg_cpm)}  Err={last_valid_err:.1f}% Temp={last_temp:.1f}°C")
-                        return 
+                        print(f"t={ts}  HT={avg_usv:.4f}µSv/h  HT={avg_ur:.2f}µR/h  CPS={avg_cps:.1f}  CPM={int(avg_cpm)}  Err={last_valid_err:.1f}%  Temp={last_temp:.1f}°C")
+                        lines_count += 1
+                        if lines_count >= args.runonce:
+                            return 
+                        # Reset buforów dla kolejnej linii w trybie multi-runonce
+                        cps_buffer, dose_buffer = [], []
+                        start_time = current_time
                     else:
                         # Tryb Live: tabela 
                         if not header_printed:
@@ -134,13 +141,13 @@ def main():
             time.sleep(0.1)
 
     except KeyboardInterrupt:
-        if not args.runonce:
+        if args.runonce is None:
             sys.stdout.write("\n")
             print("[INFO] Aborted (Ctrl+C).")
     except Exception as e:
         print(f"\n[ERR] {e}")
     finally:
-        if not args.runonce:
+        if args.runonce is None:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
 if __name__ == "__main__":
